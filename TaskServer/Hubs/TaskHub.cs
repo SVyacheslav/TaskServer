@@ -16,29 +16,29 @@ namespace TaskServer.Hubs
             db = context;
         }
         
-        public Task SendDb()
+        public async Task UpdateDbAsync()
         {
             List<Assignment> assignmentsSendDb = db.Assignments.ToList();
-            return Clients.Caller.SendAsync("ReceiveDb", assignmentsSendDb);
+            await Clients.Caller.SendAsync("ReceiveDb", assignmentsSendDb);
         }
 
-        public Task Add(Assignment assignment)
+        public async Task AddAsync(Assignment assignment)
         {
             db.Assignments.Add(assignment);
             db.SaveChanges();
             List<Assignment> assignmentsAdd = db.Assignments.ToList();
             string messageAdd = "Задание добавлено!";
-            return Clients.Caller.SendAsync("ReceiveAdd", assignmentsAdd, messageAdd);
+            await Clients.Caller.SendAsync("ReceiveAdd", assignmentsAdd, messageAdd);
         }
 
-        public Task StartedOn(Assignment assignment)
+        public async Task StartedOnAsync(Assignment assignment)
         {
             
             if (assignment.CompletedOn != null)
             {
                 List<Assignment> assignmentsStartedOn = db.Assignments.ToList();
                 string messageStartedOn = "Задача уже выполнена!";
-                return Clients.Caller.SendAsync("ReceiveStartedOn", assignmentsStartedOn, messageStartedOn);
+                await Clients.Caller.SendAsync("ReceiveStartedOn", assignmentsStartedOn, messageStartedOn);
             }
             else
             {
@@ -46,7 +46,7 @@ namespace TaskServer.Hubs
                 {
                     List<Assignment> assignmentsStartedOn = db.Assignments.ToList();
                     string messageStartedOn = "Задача выполняется в настоящий момент!";
-                    return Clients.Caller.SendAsync("ReceiveStartedOn", assignmentsStartedOn, messageStartedOn);
+                    await Clients.Caller.SendAsync("ReceiveStartedOn", assignmentsStartedOn, messageStartedOn);
                 }
                 else
                 {
@@ -55,34 +55,41 @@ namespace TaskServer.Hubs
                     db.SaveChanges();
                     List<Assignment> assignmentsStartedOn = db.Assignments.ToList();
                     string messageStartedOn = "Начато выполнение задачи!";
-                    return Clients.Caller.SendAsync("ReceiveStartedOn", assignmentsStartedOn, messageStartedOn);
+                    await Clients.Caller.SendAsync("ReceiveStartedOn", assignmentsStartedOn, messageStartedOn);
                 }   
             }
            
         }
 
-        public Task CompletedOn(Assignment assignment)
+        public async Task CompletedOnAsync(Assignment assignment)
         {
-            
-            if (assignment.CompletedOn != null)
+            if(assignment.StartedOn != null)
             {
-                List<Assignment> assignmentsStartedOn = db.Assignments.ToList();
-                string messageStartedOn = "Задача уже выполнена!";
-                return Clients.Caller.SendAsync("ReceiveStartedOn", assignmentsStartedOn, messageStartedOn);
+                if (assignment.CompletedOn != null)
+                {
+                    List<Assignment> assignmentsStartedOn = db.Assignments.ToList();
+                    string messageStartedOn = "Задача уже выполнена!";
+                    await Clients.Caller.SendAsync("ReceiveStartedOn", assignmentsStartedOn, messageStartedOn);
+                }
+                else
+                {
+                    assignment.CompletedOn = DateTime.Now;
+                    db.Assignments.Update(assignment);
+                    db.SaveChanges();
+                    List<Assignment> assignmentsCompletedOn = db.Assignments.ToList();
+                    string messageCompletedOn = "Задача завершена!";
+                    await Clients.Caller.SendAsync("ReceiveCompletedOn", assignmentsCompletedOn, messageCompletedOn);
+                }
             }
-            else
-            {
-                assignment.CompletedOn = DateTime.Now;                                                    
-                db.Assignments.Update(assignment);
-                db.SaveChanges();
-                List<Assignment> assignmentsCompletedOn = db.Assignments.ToList();
-                string messageCompletedOn = "Задача завершена!";
-                return Clients.Caller.SendAsync("ReceiveCompletedOn", assignmentsCompletedOn, messageCompletedOn);
-            }
-   
+            else   {
+                    
+                    List<Assignment> assignmentsCompletedOn = db.Assignments.ToList();
+                    string messageCompletedOn = "Задача еще на начата!";
+                    await Clients.Caller.SendAsync("ReceiveCompletedOn", assignmentsCompletedOn, messageCompletedOn);
+                   }
         }
 
-        public Task DeleteTaskDb(int? id)
+        public async Task DeleteTaskDbAsync(int? id)
         {
             if (id != null)
             {
@@ -95,7 +102,7 @@ namespace TaskServer.Hubs
             }
             List<Assignment> assignmentsDeleteTaskDb = db.Assignments.ToList();
             string messageDeleteTaskD = "Задание удалено!";
-            return Clients.Caller.SendAsync("ReceiveDeleteTaskDb", assignmentsDeleteTaskDb, messageDeleteTaskD);
+            await Clients.Caller.SendAsync("ReceiveDeleteTaskDb", assignmentsDeleteTaskDb, messageDeleteTaskD);
         }
 
     }
